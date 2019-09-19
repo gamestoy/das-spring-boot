@@ -42,10 +42,8 @@ La aplicación tiene que:
 * annotations
 * Diseño API: determinar qué servicios se van a exponer
 
-## Capítulo II.2
-* Consumir una API
-
 ## Capítulo III
+* Consumir una API
 * Guardado de datos en sesión
 * Búsqueda de datos en secuencia
 
@@ -56,20 +54,24 @@ La aplicación tiene que:
 * Filtros
 * Interceptors
 
-## Capítulo VI
-* Medir a mano tiempos
-* Paralelización
+## Capítulo VI
 * Thread local
-
-## Capítulo VI.2
-* Snapshots. Género es snapshoteable
+* uow y headers
 
 ## Capítulo VII
-* Reemplazar sesión
-* H2 - guardado en base de datos en memoria
+* Medir a mano tiempos
+* Paralelización
+* Mantener thread local en paralelización
 
 ## Capítulo VIII
-*Aspectos: logging, performance.
+* Snapshots. Top Movies
+
+## Capítulo IX
+* Aspectos: performance.
+
+## Capítulo X
+* Reemplazar sesión
+* H2 - guardado en base de datos en memoria
 
 ## Anexo I
 * Explicar annotations en general y crear un ejemplo de cómo levantar annotations y hacer algo
