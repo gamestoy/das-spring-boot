@@ -110,11 +110,11 @@ public class MovieClient {
 }
 ``` 
 
-Pero en lugar de agregar toda configuración en el mismo archivo, separar la configuración, según los criterios que creamos convenientes, en varios archivos. Para esto vamos a agrupar toda la configuración de los servicios externos en endpoints.properties. 
+Pero en lugar de agregar toda configuración en el mismo archivo se puede separar la configuración, según los criterios que creamos convenientes, en varios archivos. Para esto vamos a agrupar toda la configuración de los servicios externos en endpoints.properties. 
 
 Una forma de tipificar estos valores es crear una clase de configuración. Esta clase es un simple objeto anotado con @Component, para que pueda ser inyectado, al cual vamos a indicarle dónde obtener la nueva información y el prefijo utilizado en las claves:
 
-```
+```java
 @Component
 @PropertySource("classpath:endpoints.properties")
 @ConfigurationProperties(prefix = "tmdb")
@@ -130,14 +130,14 @@ public class TMDBConfig {
 De esta forma va a buscar en nuestro endpoints.properties los valores de las claves que comiencen con el prefijo tmdb y se correspondan con los campos del objeto. Con @PropertySource indicamos dónde encontrar la configuración y con @ConfigurationProperties indicamos el prefijo, de esta forma se inyectará automáticamente el valor indicado en la clave tmdb.host.
 
 Luego podemos utilizar ese objeto de configuración para agregar el host al template:
-```
+```java
 restTemplate.setUriTemplateHandler(new DefaultUriBuilderFactory(tmdbConfig.getHost()));
 ```
 
 ## Scopes
 Un componente en Spring puede tener diferentes scopes según la funcionalidad que se quiera implementar. Los más utilizados son:
 * Singleton: existe un solo componente en la aplicación.
-```
+```java
 @Bean
 @Scope("singleton")
 public class SingletonTest {
@@ -145,7 +145,7 @@ public class SingletonTest {
 }
 ```
 * Prototype: crea una nueva instancia cada vez que es requerida.
-```
+```java
 @Bean
 @Scope("prototype")
 public class PrototypeTest {
@@ -153,7 +153,7 @@ public class PrototypeTest {
 }
 ```
 * Request: este scope, que es exclusivamente para web, mantiene la instancia del objeto durante la request del usuario.
-```
+```java
 @Component
 @Scope(value = WebApplicationContext.SCOPE_REQUEST, proxyMode = ScopedProxyMode.TARGET_CLASS)
 public class RequestScope {
@@ -165,7 +165,7 @@ public class RequestScope {
 }
 ```
 * Session: este scope, que también es para web, mantiene la instancia durante una sesión HTTP.
-```
+```java
 @Component
 @Scope(value = WebApplicationContext.SCOPE_SESSION, proxyMode = ScopedProxyMode.TARGET_CLASS)
 public class RequestScope {
