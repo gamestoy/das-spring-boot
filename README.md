@@ -1,81 +1,109 @@
-Spring Boot
-----
+Caché
+---
+### Objetivo
+* Reducir el tiempo de respuesta del servicio de películas utilizando una caché para guardar las películas mejor puntuadas.
 
-En este tutorial vamos a crear una API que permita buscar películas, ver el detalle, guardarlas como vistas, calificarlas y crear listas temáticas. Para esto vamos a usar la API de [The Movie Database](https://developers.themoviedb.org/3/getting-started/introduction) para obtener la información necesaria.
-
-La aplicación tiene que:
-* Permitir buscar películas
-* Permitir obtener información de una película, con el detalle de los actores principales, género, reviews, etc.
-* Permitir marcar una película como vista con cierto puntaje.
-* Permitir armar listas temáticas con películas.
-
-# Índice
-## Capítulo I
-* Crear default application con intellij o http://start.spring.io/
-* Explicar annotations usadas
-* Explicar server embebido
-* Usa Tomcat
-* Se puede cambiar por otro, ejemplo Jetty:
-```
-<properties>
-	<servlet-api.version>3.1.0</servlet-api.version>
-</properties>
+### Caching
+Spring permite implementar una caché de una forma bastante transparente, sin necesidad de agregar lógica particular en las clases de la aplicación. Para comenzar necesitamos agregar la dependencia:
+```xml
 <dependency>
-	<groupId>org.springframework.boot</groupId>
-	<artifactId>spring-boot-starter-web</artifactId>
-	<exclusions>
-		<!-- Exclude the Tomcat dependency -->
-		<exclusion>
-			<groupId>org.springframework.boot</groupId>
-			<artifactId>spring-boot-starter-tomcat</artifactId>
-		</exclusion>
-	</exclusions>
-</dependency>
-<!-- Use Jetty instead -->
-<dependency>
-	<groupId>org.springframework.boot</groupId>
-	<artifactId>spring-boot-starter-jetty</artifactId>
+    <groupId>org.springframework.boot</groupId>
+    <artifactId>spring-boot-starter-cache</artifactId>
 </dependency>
 ```
-## Capítulo II
-* REST Services: crear un servicio de prueba
-* annotations
-* Diseño API: determinar qué servicios se van a exponer
 
-## Capítulo II.2
-* Consumir una API
+Con la dependencia instalada, para que Spring configure automáticamente la caché necesitamos agregarle a la aplicación el annotation @EnableCaching:
 
-## Capítulo III
-* Guardado de datos en sesión
-* Búsqueda de datos en secuencia
+```java
+@SpringBootApplication
+@EnableScheduling
+@EnableCaching
+public class MoviesApplication {
 
-## Capítulo IV
-* Logging
+  public static void main(String[] args) {
+    SpringApplication.run(MoviesApplication.class, args);
+  }
+}
+```
 
-## Capítulo V
-* Filtros
-* Interceptors
+Para implementar su uso podemos agregar un annotation en un método, que guardará el objeto que retorne:
+```java
+  @Cacheable("test")
+  public Test get(String id) {
+  }
+```
+En este caso se va a utilizar la cache "test", y la key se va a formar automáticamente con los valores de todos los parámetros. Este mismo annotation permite configurar qué key utilizar, así como bajo qué condiciones debería guardarse:
+```java
+  @Cacheable(value = "test", key = "#result.id", condition = "#id > 20")
+  public Movie get(int id) {
+  }
+```
+Este método va a guardar en la cache bajo la key correspondiente al id del resultado, siempre y cuando el id pasado como parámetro sea mayor a 20.
 
-## Capítulo VI
-* Medir a mano tiempos
-* Paralelización
-* Thread local
 
-## Capítulo VI.2
-* Snapshots. Género es snapshoteable
+### Implementaciones
+La implementación default de Spring es un ConcurrentHashMap, algo que nos permite hacer pruebas pero que no es lo suficientemente útil para una aplicación productiva. Una buena implementación de caché debería permitirnos configurar:
+* Las cachés a utilizar.
+* Dónde se guardan los datos (heap, disco, etc).
+* El tamaño de cada una.
+* Cuánto tiempo guardar los datos.
+* Qué hacer cuando se llena.
 
-## Capítulo VII
-* Reemplazar sesión
-* H2 - guardado en base de datos en memoria
+Por eso Spring permite implementar la abstracción de caché con, entre otros, los siguientes proveedores:
 
-## Capítulo VIII
-*Aspectos: logging, performance.
+* JCache
+* Redis
+* Hazelcast
+* Couchbase
 
-## Anexo I
-* Explicar annotations en general y crear un ejemplo de cómo levantar annotations y hacer algo
+Para esta aplicación vamos a utilizar ehcache 3, que cumple con la especificación JSR-107 (JCache).
 
-## Anexo II
-* Thread pools
+### Ehcache
+Ehcache es una librería open source que nos va a permitir configurar muchas de las funcionalidades que la implementación default no nos permitía. 
 
-## Anexo III
-* Web server, sockets
+Para hacerlo tenemos que indicarle a Spring dónde buscar la configuración en el application.properties:
+```
+spring.cache.jcache.config=classpath:ehcache.xml
+```
+ 
+Y agregar un archivo ehcache.xml en resources:
+```xml
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xmlns="http://www.ehcache.org/v3"
+        xmlns:jsr107="http://www.ehcache.org/v3/jsr107"
+        xsi:schemaLocation="
+            http://www.ehcache.org/v3 http://www.ehcache.org/schema/ehcache-core-3.0.xsd
+            http://www.ehcache.org/v3/jsr107 http://www.ehcache.org/schema/ehcache-107-ext-3.0.xsd">
+
+    <cache alias="test">
+        <key-type>java.lang.String</key-type>
+        <expiry>
+            <ttl unit="seconds">120</ttl>
+        </expiry>
+        <resources>
+            <heap unit="MB">200</heap>
+        </resources>
+    </cache>
+
+</config>
+```
+
+Este ejemplo definimos:
+* Una cache con el alias "tests".
+* Que se va a guardar en la heap. La librería también permite guardar off-heap y en disco.
+* Con un tamaño de 200 MB. Este tamaño también puede indicarse en cantidad de objetos.
+* Una expiración de dos minutos.
+* LRU como eviction policy. Esto no es configurable sino que viene dado por dónde se guarda, exitiendo Least Recently Used (LRU), Least Frequently Used (LFU) y First In First Out (FIFO).
+* La key va a ser de tipo String.
+
+De esta forma queda configurada la cache sin tener que tocar código en la aplicación.
+
+
+---
+
+[Siguiente >>](https://github.com/gamestoy/checkout-spring-tutorial/tree/11_mongodb)
+
+[<< Anterior](https://github.com/gamestoy/das-spring-boot/tree/09_aspects)
+
+[[Índice]](https://github.com/gamestoy/das-spring-boot#%C3%ADndice)
+
