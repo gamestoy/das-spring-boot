@@ -1,81 +1,107 @@
-Spring Boot
-----
+Aspectos
+---
+### Objetivo
+* Poder agregar al log el tiempo de ejecución de cualquier método con el annotation @Performance.
 
-En este tutorial vamos a crear una API que permita buscar películas, ver el detalle, guardarlas como vistas, calificarlas y crear listas temáticas. Para esto vamos a usar la API de [The Movie Database](https://developers.themoviedb.org/3/getting-started/introduction) para obtener la información necesaria.
+### Aspectos
+Un aspecto es la modularización de una funcionalidad que se utiliza en forma cross en la aplicación pero que no puede encapsularse completamente en un módulo, como por ejemplo el logging o la seguridad. La programación orientada a aspectos tiene estos conceptos centrales:
+* Join point: es un punto durante la ejecución de una aplicación, por ejemplo la llamada a un método. 
+* Advice: es la acción tomada por un aspecto en un join point determinado. Los advices que más se utilizan son @Around, @Before y @After.
+* Pointcut: es un predicado que selecciona join points.
 
-La aplicación tiene que:
-* Permitir buscar películas
-* Permitir obtener información de una película, con el detalle de los actores principales, género, reviews, etc.
-* Permitir marcar una película como vista con cierto puntaje.
-* Permitir armar listas temáticas con películas.
-
-# Índice
-## Capítulo I
-* Crear default application con intellij o http://start.spring.io/
-* Explicar annotations usadas
-* Explicar server embebido
-* Usa Tomcat
-* Se puede cambiar por otro, ejemplo Jetty:
+Por ejemplo, supongamos que queremos loguear cada vez que se llama a un método de un controller, antes de que se ejecute el método:
+```java
+    @Before("within(com.dasboot.controller..*)")
+    public void trackExecutionTime(JoinPoint joinPoint)
+      throws Throwable {
+      var name = joinPoint.getSignature().toShortString();
+      logger.info("Calling " + name);
+    }
+    
 ```
-<properties>
-	<servlet-api.version>3.1.0</servlet-api.version>
-</properties>
-<dependency>
-	<groupId>org.springframework.boot</groupId>
-	<artifactId>spring-boot-starter-web</artifactId>
-	<exclusions>
-		<!-- Exclude the Tomcat dependency -->
-		<exclusion>
-			<groupId>org.springframework.boot</groupId>
-			<artifactId>spring-boot-starter-tomcat</artifactId>
-		</exclusion>
-	</exclusions>
-</dependency>
-<!-- Use Jetty instead -->
-<dependency>
-	<groupId>org.springframework.boot</groupId>
-	<artifactId>spring-boot-starter-jetty</artifactId>
-</dependency>
+
+#### Pointcut
+Los pointcuts más utilizados son:
+* **execution**: ejecuta el aspecto en la llamada a un método, en este ejemplo cualquier método de la clase TestController.
+```java
+@Pointcut("execution(* com.dasboot.controller.TestController.*(..))")
 ```
-## Capítulo II
-* REST Services: crear un servicio de prueba
-* annotations
-* Diseño API: determinar qué servicios se van a exponer
 
-## Capítulo II.2
-* Consumir una API
+* **this**: ejecuta el aspecto si la clase es de cierto tipo o implementa cierta interfaz.<sup>1</sup>
+```java
+@Pointcut("this(* com.dasboot.controller.TestInterface)")
+```
 
-## Capítulo III
-* Guardado de datos en sesión
-* Búsqueda de datos en secuencia
+* **within**: permite limitar la ejecución a un contexto, por ejemplo limitar la ejecución a una clase o a un paquete. 
+```java
+@Before("within(com.dasboot.controller.TestController)")
 
-## Capítulo IV
-* Logging
+@After("within(com.dasboot.controller..*)")
+```
 
-## Capítulo V
-* Filtros
-* Interceptors
+* **@annotation**: se ejecuta en todo join point que utilice esa annotation
+```java
+@Log
+public void test() {}
 
-## Capítulo VI
-* Medir a mano tiempos
-* Paralelización
-* Thread local
+@Before("@annotation(log)")
+public void logExecution() {
+  logger.info("hi!");
+}
+```
 
-## Capítulo VI.2
-* Snapshots. Género es snapshoteable
+#### Advices
+* **After**: ejecuta el aspecto luego del join point.
+```java
+@Aspect
+public class AfterAspect {
 
-## Capítulo VII
-* Reemplazar sesión
-* H2 - guardado en base de datos en memoria
+    @After("within(com.dasboot.controller.TestController)")
+    public void after() {
+        logger.info("After execution");
+    }
 
-## Capítulo VIII
-*Aspectos: logging, performance.
+}
+```
+* **Before**: ejecuta el aspecto antes del join point.
+```java
+@Aspect
+public class BeforeAspect {
 
-## Anexo I
-* Explicar annotations en general y crear un ejemplo de cómo levantar annotations y hacer algo
+    @Before("within(com.dasboot.controller.TestController)")
+    public void before() {
+        logger.info("Before execution");
+    }
 
-## Anexo II
-* Thread pools
+}
+```
 
-## Anexo III
-* Web server, sockets
+* **Around**: da control sobre cuándo ejecutar el join point, permitiendo ejecutar código antes y después.
+```java
+@Aspect
+public class AroundAspect {
+
+    @Around("within(com.dasboot.controller.TestController)")
+    public Object test(ProceedingJoinPoint pjp) throws Throwable {
+        logger.info("Before execution");
+        Object returnValue = pjp.proceed();
+        logger.info("After execution");
+        return returnValue;
+    }
+
+}
+```
+
+### Más información
+* [Spring AOP](https://docs.spring.io/spring/docs/current/spring-framework-reference/core.html#aop)
+
+<sup>1</sup> Hay cierta diferencia entre this() y target() que no vale la pena desarrollar en este momento.
+
+---
+
+[Siguiente >>](https://github.com/gamestoy/checkout-spring-tutorial/tree/10_cache)
+
+[<< Anterior](https://github.com/gamestoy/das-spring-boot/tree/08_snapshot)
+
+[[Índice]](https://github.com/gamestoy/das-spring-boot#%C3%ADndice)
+
