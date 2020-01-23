@@ -1,81 +1,40 @@
-Spring Boot
-----
+Snapshot
+---
+## Objetivo
+Para obtener la información de una película consultamos cuatro servicios diferentes: la información general de la película, el elenco, las reviews y las películas similares. En un primer momento lo hicimos en forma secuencial, pero para mejorar la performance vamos a hacerlo en forma paralela, así que las tareas a realizar son:
+* Devolver un flag que indique si la película integra la lista de mejor puntuadas.
+* Crear un snapshot con las películas mejor puntuadas para mejorar la performance.
+* Crear una uow para identificar los llamados del scheduler.
 
-En este tutorial vamos a crear una API que permita buscar películas, ver el detalle, guardarlas como vistas, calificarlas y crear listas temáticas. Para esto vamos a usar la API de [The Movie Database](https://developers.themoviedb.org/3/getting-started/introduction) para obtener la información necesaria.
-
-La aplicación tiene que:
-* Permitir buscar películas
-* Permitir obtener información de una película, con el detalle de los actores principales, género, reviews, etc.
-* Permitir marcar una película como vista con cierto puntaje.
-* Permitir armar listas temáticas con películas.
-
-# Índice
-## Capítulo I
-* Crear default application con intellij o http://start.spring.io/
-* Explicar annotations usadas
-* Explicar server embebido
-* Usa Tomcat
-* Se puede cambiar por otro, ejemplo Jetty:
+## Scheduled
+Para la ejecución de un método cada cierto período de tiempo, Spring nos da la annotation @Scheduled. 
+```java
+  @Scheduled(fixedDelay = 10000)
+  public void refresh() {
+    System.out.println("executing...");
+  }
 ```
-<properties>
-	<servlet-api.version>3.1.0</servlet-api.version>
-</properties>
-<dependency>
-	<groupId>org.springframework.boot</groupId>
-	<artifactId>spring-boot-starter-web</artifactId>
-	<exclusions>
-		<!-- Exclude the Tomcat dependency -->
-		<exclusion>
-			<groupId>org.springframework.boot</groupId>
-			<artifactId>spring-boot-starter-tomcat</artifactId>
-		</exclusion>
-	</exclusions>
-</dependency>
-<!-- Use Jetty instead -->
-<dependency>
-	<groupId>org.springframework.boot</groupId>
-	<artifactId>spring-boot-starter-jetty</artifactId>
-</dependency>
+Esta annotation está parametrizada, así que podemos utilizar algunos de los siguientes parámetros:
+* initialDelay: tiempo a esperar antes de ejecutar la primer tarea.
+* fixedRate: indica en milisegundos el tiempo que debe pasar entre ejecuciones.
+* fixedDelay: indica en milisegundos el tiempo que debe pasar entre la finalización de la una ejecución y la siguiente.
+* cron: usa un [cron expressions](https://en.wikipedia.org/wiki/Cron#CRON_expression) para indicar el intervalo de ejecución.
+
+Para activarlo se debe agregar un annotation en la aplicación:
+```java
+@SpringBootApplication
+@EnableScheduling
+public class TestApplication {
+
+  public static void main(String[] args) {
+    SpringApplication.run(TestApplication.class, args);
+  }
+}
 ```
-## Capítulo II
-* REST Services: crear un servicio de prueba
-* annotations
-* Diseño API: determinar qué servicios se van a exponer
 
-## Capítulo II.2
-* Consumir una API
+---
+[Siguiente >>](https://github.com/gamestoy/das-spring-boot/tree/09_aspects)
 
-## Capítulo III
-* Guardado de datos en sesión
-* Búsqueda de datos en secuencia
+[<< Anterior](https://github.com/gamestoy/das-spring-boot/tree/07_concurrency)
 
-## Capítulo IV
-* Logging
-
-## Capítulo V
-* Filtros
-* Interceptors
-
-## Capítulo VI
-* Medir a mano tiempos
-* Paralelización
-* Thread local
-
-## Capítulo VI.2
-* Snapshots. Género es snapshoteable
-
-## Capítulo VII
-* Reemplazar sesión
-* H2 - guardado en base de datos en memoria
-
-## Capítulo VIII
-*Aspectos: logging, performance.
-
-## Anexo I
-* Explicar annotations en general y crear un ejemplo de cómo levantar annotations y hacer algo
-
-## Anexo II
-* Thread pools
-
-## Anexo III
-* Web server, sockets
+[[Índice]](https://github.com/gamestoy/das-spring-boot#%C3%ADndice)
