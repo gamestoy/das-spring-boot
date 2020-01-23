@@ -1,81 +1,126 @@
-Spring Boot
-----
+Diseñar la API
+---
+Lo primero que tenemos que hacer es definir qué información vamos a devolver en nuestros servicios. Recordando, nuestra aplicación tiene que:
 
-En este tutorial vamos a crear una API que permita buscar películas, ver el detalle, guardarlas como vistas, calificarlas y crear listas temáticas. Para esto vamos a usar la API de [The Movie Database](https://developers.themoviedb.org/3/getting-started/introduction) para obtener la información necesaria.
+1. Permitir buscar películas: este servicio debería recibir  un conjunto de palabras y un número de página, y devolver un listado de películas.
+2. Permitir obtener el detalle de una película: este servicio debería recibir un id y devolver el detalle de una película. La misma en principio debería tener un id, un nombre, una descripción y una lista de géneros.
+3. Permitir crear y borrar una lista temática de películas: debería poder crear o borrar una lista para un usuario, y permitir agregar o eliminar una serie de películas de una lista.
 
-La aplicación tiene que:
-* Permitir buscar películas
-* Permitir obtener información de una película, con el detalle de los actores principales, género, reviews, etc.
-* Permitir marcar una película como vista con cierto puntaje.
-* Permitir armar listas temáticas con películas.
+### @Controller
+Esta annotation es una especialización de **@Component**, indicando que esa clase es un controller y permitiendo la utilización de otras funcionalidades relacionadas con el routing y la serialización de las respuestas.
 
-# Índice
-## Capítulo I
-* Crear default application con intellij o http://start.spring.io/
-* Explicar annotations usadas
-* Explicar server embebido
-* Usa Tomcat
-* Se puede cambiar por otro, ejemplo Jetty:
+Supongamos que queremos crear un controller que nos permita crear, obtener, borrar y buscar usuarios, Para crear un controller simplemente se le agrega **@Controller** a una clase:
+
 ```
-<properties>
-	<servlet-api.version>3.1.0</servlet-api.version>
-</properties>
-<dependency>
-	<groupId>org.springframework.boot</groupId>
-	<artifactId>spring-boot-starter-web</artifactId>
-	<exclusions>
-		<!-- Exclude the Tomcat dependency -->
-		<exclusion>
-			<groupId>org.springframework.boot</groupId>
-			<artifactId>spring-boot-starter-tomcat</artifactId>
-		</exclusion>
-	</exclusions>
-</dependency>
-<!-- Use Jetty instead -->
-<dependency>
-	<groupId>org.springframework.boot</groupId>
-	<artifactId>spring-boot-starter-jetty</artifactId>
-</dependency>
+@Controller
+public Class UserController {
+
+}
 ```
-## Capítulo II
-* REST Services: crear un servicio de prueba
-* annotations
-* Diseño API: determinar qué servicios se van a exponer
 
-## Capítulo II.2
-* Consumir una API
+Pero esto de por sí no agrega ninguna funcionalidad. Lo primero que tenemos que hacer es agregar un método y los mapeos correspondientes, tanto de routing como de parámetros:
+```java
+@Controller
+public Class UserController {
 
-## Capítulo III
-* Guardado de datos en sesión
-* Búsqueda de datos en secuencia
+    @RequestMapping(value = "/users/{id}", method = RequestMethod.GET)
+    public @ResponseBody User getUser(@PathVariable String id) {
+        // retrive user.
+        return user;
+    }
 
-## Capítulo IV
-* Logging
+}
+```
 
-## Capítulo V
-* Filtros
-* Interceptors
+Para eso agregamos tres nuevos annotations:
+* RequestMapping: recibe dos parámetros, value con el path en el que ese método va a responder, y method, con el método HTTP correspondiente.
+* PathVariable: en el path indicado en @RequestMapping estamos indicando un nombre de variable entre llaves ({}), este annotation permite asignar a la variable correspondiente al valor indicado en el path.
+* ResponseBody: indica que la respuesta del método tiene que enviarse en el body de la respuesta. También se puede incluir a nivel de clase si todos los métodos la van a implementar.
 
-## Capítulo VI
-* Medir a mano tiempos
-* Paralelización
-* Thread local
+Agreguemos el resto de los métodos:
 
-## Capítulo VI.2
-* Snapshots. Género es snapshoteable
+```java
+@Controller
+@ResponseBody 
+public Class UserController {
 
-## Capítulo VII
-* Reemplazar sesión
-* H2 - guardado en base de datos en memoria
+    @GetMapping(value = "/users/{id}")
+    public User getUser(@PathVariable String id) {
+        // retrieve user.
+        return user;
+    }
 
-## Capítulo VIII
-*Aspectos: logging, performance.
+    @GetMapping(value = "/users")
+    public List<User> searchUser(@RequestParam(value = "q") String query, @RequestParam Optional<Integer> page) {
+        // search users.
+        return users;
+    }
+    
+    @PostMapping(value = "/users")
+    public User createUser(@RequestBody User user) {
+        // create user.
+        return user;
+    }
 
-## Anexo I
-* Explicar annotations en general y crear un ejemplo de cómo levantar annotations y hacer algo
+    @DeleteMapping(value = "/users/{id}")
+    public void deleteUser(@PathVariable String id) {
+        // delete user.
+    }
 
-## Anexo II
-* Thread pools
+}
+```
 
-## Anexo III
-* Web server, sockets
+En este ejemplo hicimos un cambio en las annotations usadas: además de llevar el ResponseBody al scope de clase, cambiamos los @RequestMapping, en los que se debía especificar el método HTTP, por **@GetMapping**, **@PostMapping** y **@DeleteMapping**. 
+
+También se incluyen dos nuevas annotations: @RequestParam y @RequestBody. RequestParam asigna un parámetro del query string a una variable, y tiene dos parámetros: value, que  y required. En el ejemplo de la búsqueda estamos usando dos, uno que asigna el valor del parámetro "q" a la variable "query", mientras que el otro parámetro define una variable opcional "page" que busca en la request una parámetro con el mismo nombre. RequestBody se utiliza para mappear el contenido del body a un objeto Java, asignándoselo a una variable. 
+
+### @RestController
+Este annotation combina @Controller y @ResponseBody, por lo que el controller quedaría:
+```java
+@RestController
+public Class UserController {
+
+    @GetMapping(value = "/users/{id}")
+    public User getUser(@PathVariable String id) {
+        // retrieve user.
+        return user;
+    }
+
+    @GetMapping(value = "/users")
+    public List<User> searchUser(@RequestParam(value = "q") String query, @RequestParam Optional<Integer> page) {
+        // search users.
+        return users;
+    }
+    
+    @PostMapping(value = "/users")
+    public User createUser(@RequestBody User user) {
+        // create user.
+        return user;
+    }
+
+    @DeleteMapping(value = "/users/{id}")
+    public void deleteUser(@PathVariable String id) {
+        // delete user.
+    }
+
+}
+```
+
+### Compresión
+Una mejora de performance que podemos realizar es comprimir la respuesta de nuestra API. Spring Boot nos permite configurarlo simplemente agregando al application.properties, el archivo default de configuración, los siguientes valores:
+```properties
+server.compression.enabled=true
+server.compression.min-response-size=2048
+```
+
+### Más información
+* [API Design - Microsoft](https://docs.microsoft.com/en-us/azure/architecture/best-practices/api-design)
+* [Undisturbed REST](https://www.mulesoft.com/lp/ebook/api/restbook)
+ 
+ 
+--- 
+[Siguiente >>](https://github.com/gamestoy/checkout-spring-tutorial/tree/03_webservices)
+
+[<< Anterior](https://github.com/gamestoy/das-spring-boot/tree/01_create_project)
+
+[[Índice]](https://github.com/gamestoy/das-spring-boot#%C3%ADndice)
