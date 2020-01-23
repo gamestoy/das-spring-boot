@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+
+    <property name="CONSOLE_LOG_PATTERN" value="%d{ISO8601} %-4p [%t] [%X{hostname}-%X{uow}] %logger{0} - %msg%n"/>
+
+    <appender name="consoleAppender" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <pattern>${CONSOLE_LOG_PATTERN}</pattern>
+        </encoder>
+    </appender>
+
+    <root level="INFO">
+        <appender-ref ref="consoleAppender"/>
+    </root>
+
+    <logger name="org.springframework" level="WARN"/>
+
+</configuration>

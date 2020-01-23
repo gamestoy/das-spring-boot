@@ -1,81 +1,53 @@
-Spring Boot
-----
+Thread local
+---
+## Objetivo
+* Generar un id para la request llamada UOW, que puede venir mediante el header X-UOW o se debe generar en forma aleatoria en caso contrario.
+* Propagar a toda llamada de un servicio externo los headers que tengan el prefijo XMOVIE y la UOW.
+* Agregar a toda línea de log el nombre de la instancia en la que se ejecuta y la UOW.
 
-En este tutorial vamos a crear una API que permita buscar películas, ver el detalle, guardarlas como vistas, calificarlas y crear listas temáticas. Para esto vamos a usar la API de [The Movie Database](https://developers.themoviedb.org/3/getting-started/introduction) para obtener la información necesaria.
+## Thread local
+La clase ThreadLocal nos permite tener variables únicas por thread que pueden ser accedidas y modificadas desde cualquier parte de la aplicación. Por ejemplo:
+```java
+public class Test {
 
-La aplicación tiene que:
-* Permitir buscar películas
-* Permitir obtener información de una película, con el detalle de los actores principales, género, reviews, etc.
-* Permitir marcar una película como vista con cierto puntaje.
-* Permitir armar listas temáticas con películas.
+  public static void main(String[] args) throws InterruptedException {
+    var t1 = new Thread(() -> Context.setContext("TEST"));
+    t1.start();
+    var t2 = new Thread(() -> System.out.println(Context.getContext()));
+    Thread.sleep(1000);
+    t2.start();
+  }
 
-# Índice
-## Capítulo I
-* Crear default application con intellij o http://start.spring.io/
-* Explicar annotations usadas
-* Explicar server embebido
-* Usa Tomcat
-* Se puede cambiar por otro, ejemplo Jetty:
+  static class Context {
+    private static final ThreadLocal<String> context = ThreadLocal.withInitial(() -> "DEFAULT");
+
+    public static String getContext() {
+      return context.get();
+    }
+
+    public static void setContext(String value) {
+      context.set(value);
+    }
+
+  }
+}
 ```
-<properties>
-	<servlet-api.version>3.1.0</servlet-api.version>
-</properties>
-<dependency>
-	<groupId>org.springframework.boot</groupId>
-	<artifactId>spring-boot-starter-web</artifactId>
-	<exclusions>
-		<!-- Exclude the Tomcat dependency -->
-		<exclusion>
-			<groupId>org.springframework.boot</groupId>
-			<artifactId>spring-boot-starter-tomcat</artifactId>
-		</exclusion>
-	</exclusions>
-</dependency>
-<!-- Use Jetty instead -->
-<dependency>
-	<groupId>org.springframework.boot</groupId>
-	<artifactId>spring-boot-starter-jetty</artifactId>
-</dependency>
+Al ejecutar el código anterior lo que se imprime por pantalla es "DEFAULT", porque el contexto se modifica en un thread diferente al que se accede.
+
+## Logback
+Para poder agregar el nombre del host y la UOW a cada línea del log, tenemos que primero disponibilizarlos en el contexto de logback: MDC. Esta clase permite agregar y obtener valores en un contexto compartido por cada thread, al igual que un thread local. Los valores se agregan bajo la modalidad clave-valor:
+```java
+MDC.put("test", 1);
+MDC.get("test");
 ```
-## Capítulo II
-* REST Services: crear un servicio de prueba
-* annotations
-* Diseño API: determinar qué servicios se van a exponer
 
-## Capítulo II.2
-* Consumir una API
+Una vez agregadas al contexto, se pueden acceder desde el log especificándolo en el pattern de log, indicando %X{nombre_variable}:
+```xml
+<property name="CONSOLE_LOG_PATTERN" value="%d{ISO8601} %-4p [%t] [%X{test}] %logger{0} - %msg%n"/>
+```
+---
+[Siguiente >>](https://github.com/gamestoy/checkout-spring-tutorial/tree/07_concurrency)
 
-## Capítulo III
-* Guardado de datos en sesión
-* Búsqueda de datos en secuencia
+[<< Anterior](https://github.com/gamestoy/checkout-spring-tutorial/tree/05_interceptors)
 
-## Capítulo IV
-* Logging
-
-## Capítulo V
-* Filtros
-* Interceptors
-
-## Capítulo VI
-* Medir a mano tiempos
-* Paralelización
-* Thread local
-
-## Capítulo VI.2
-* Snapshots. Género es snapshoteable
-
-## Capítulo VII
-* Reemplazar sesión
-* H2 - guardado en base de datos en memoria
-
-## Capítulo VIII
-*Aspectos: logging, performance.
-
-## Anexo I
-* Explicar annotations en general y crear un ejemplo de cómo levantar annotations y hacer algo
-
-## Anexo II
-* Thread pools
-
-## Anexo III
-* Web server, sockets
+[[Índice]](https://github.com/gamestoy/das-spring-boot#%C3%ADndice)
